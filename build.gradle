@@ -33,7 +33,7 @@ task createDockerfile(type: Dockerfile) {
     group = 'Docker'
     destFile = project.file('build/docker/Dockerfile')
     from 'openjdk:8-jre-alpine'
-    maintainer 'jovaniacgmail.com"'
+    maintainer 'hery.chemocgmail.com"'
     copyFile war.archiveName, '/app/spring-boot-docker.war'
     exposePort 8081    
      entryPoint 'java', "-Djava.awt.headless=true", "-Xms256m", "-Xmx256m", '-jar', '/app/spring-boot-docker.war'
@@ -51,7 +51,7 @@ task buildImage(type: DockerBuildImage) {
     group = 'Docker'
     dependsOn createDockerfile
     inputDir = createDockerfile.destFile.parentFile
-    tag = "jovaniac/spring-boot-docker:$war.version"
+    tag = "herychemo/spring-boot-docker:$war.version"
 }
 
 task pushImage(type: DockerPushImage) {
