@@ -1,0 +1,65 @@
+plugins {
+    id 'war'
+    id 'org.springframework.boot' version '1.5.10.RELEASE'
+    id 'com.bmuschko.docker-remote-api' version '3.2.3'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+version = '1.0.0'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile('org.springframework.boot:spring-boot-starter-web')
+    providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')
+}
+
+docker {
+    registryCredentials {
+        username = getConfigurationProperty('DOCKER_USERNAME', 'docker.username')
+        password = getConfigurationProperty('DOCKER_PASSWORD', 'docker.password')
+        email = getConfigurationProperty('DOCKER_EMAIL', 'docker.email')
+    }
+}
+
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+
+task createDockerfile(type: Dockerfile) {
+    group = 'Docker'
+    destFile = project.file('build/docker/Dockerfile')
+    from 'openjdk:8-jre-alpine'
+    maintainer 'jovaniacgmail.com"'
+    copyFile war.archiveName, '/app/spring-boot-docker.war'
+    exposePort 8081    
+     entryPoint 'java', "-Djava.awt.headless=true", "-Xms256m", "-Xmx256m", '-jar', '/app/spring-boot-docker.war'
+}
+
+task syncWebAppArchive(type: Sync) {
+    dependsOn assemble
+    from war.archivePath
+    into createDockerfile.destFile.parentFile
+}
+
+createDockerfile.dependsOn syncWebAppArchive
+
+task buildImage(type: DockerBuildImage) {
+    group = 'Docker'
+    dependsOn createDockerfile
+    inputDir = createDockerfile.destFile.parentFile
+    tag = "jovaniac/spring-boot-docker:$war.version"
+}
+
+task pushImage(type: DockerPushImage) {
+    group = 'Docker'
+    dependsOn buildImage
+    conventionMapping.imageName = { buildImage.getTag() }
+}
+
+String getConfigurationProperty(String envVar, String sysProp) {
+    System.getenv(envVar) ?: project.findProperty(sysProp)
+}
